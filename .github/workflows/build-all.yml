@@ -18,12 +18,10 @@ jobs:
         run: npm install -g nativefier
 
       - name: Build Desktop App
-        # Собираем приложение из URL
         run: |
           nativefier --name "Pulse Messenger" --platform "windows" "https://auragram-telegram-web.hf.space" --internal-urls ".*" build/
 
       - name: Create Installer (Inno Setup)
-        # ISCC соберет ваш installer.iss в готовый EXE
         run: iscc installer.iss
 
       - name: Upload Windows Setup
@@ -50,8 +48,14 @@ jobs:
         with:
           gradle-version: 8.5
 
+      - name: Fix AndroidX Error
+        # Эта команда создает файл настроек, который требует ошибка EvalIssueException
+        run: |
+          echo "android.useAndroidX=true" > gradle.properties
+          echo "android.enableJetifier=true" >> gradle.properties
+
       - name: Build Android APK
-        # -x пропустят проверки, которые часто вызывают ошибки "AbstractManagedExecutor"
+        # Собираем APK, пропуская тесты и проверки
         run: gradle assembleDebug -x test -x lint --stacktrace
 
       - name: Upload Android APK
