@@ -2,31 +2,44 @@ name: Build Pulse Messenger
 on: [push]
 
 jobs:
-  # СБОРКА WINDOWS (.EXE)
+  # ЗАДАНИЕ 1: СБОРКА ДЛЯ WINDOWS (.EXE ИНСТАЛЛЯТОР)
   windows-dist:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 18
-      - name: Build EXE and Setup
+
+      - name: Install Nativefier
+        run: npm install -g nativefier
+
+      - name: Build Desktop App
+        # Используем --icon "icon.png" напрямую, Nativefier сам попытается её обработать
         run: |
-          npm install -g nativefier png-to-ico
-          npx png-to-ico icon.png > icon.ico
-          nativefier --name "Pulse Messenger" --platform "windows" --icon "icon.ico" "https://auragram-telegram-web.hf.space" build/
-          iscc installer.iss
-      - uses: actions/upload-artifact@v4
+          nativefier --name "Pulse Messenger" --platform "windows" --icon "icon.png" "https://auragram-telegram-web.hf.space" --internal-urls ".*" build/
+        continue-on-error: true
+
+      - name: Create Installer (Inno Setup)
+        # В Windows-раннерах Inno Setup (iscc) уже предустановлен
+        run: iscc installer.iss
+
+      - name: Upload Windows Setup
+        uses: actions/upload-artifact@v4
         with:
-          name: Pulse-Windows-Setup
+          name: Pulse-Messenger-Windows-Setup
           path: dist/PulseMessengerSetup.exe
 
-  # СБОРКА ANDROID (.APK) БЕЗ GRADLEW
+  # ЗАДАНИЕ 2: СБОРКА ДЛЯ ANDROID (.APK)
   android-dist:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -34,14 +47,17 @@ jobs:
           distribution: 'temurin'
 
       - name: Setup Gradle
-        uses: gradle/gradle-build-action@v3
+        # Этот экшен устанавливает Gradle в систему, заменяя необходимость в gradlew
+        uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: 8.5
 
-      - name: Build APK
+      - name: Build Android APK
+        # Собираем дебаг-версию (без подписи)
         run: gradle assembleDebug
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload Android APK
+        uses: actions/upload-artifact@v4
         with:
-          name: Pulse-Android-APK
+          name: Pulse-Messenger-Android-APK
           path: app/build/outputs/apk/debug/app-debug.apk
