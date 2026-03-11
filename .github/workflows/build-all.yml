@@ -2,6 +2,7 @@ name: Build Pulse Messenger
 on: [push]
 
 jobs:
+  # СБОРКА WINDOWS (.EXE)
   windows-dist:
     runs-on: windows-latest
     steps:
@@ -9,7 +10,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 18
-      - name: Build EXE
+      - name: Build EXE and Setup
         run: |
           npm install -g nativefier png-to-ico
           npx png-to-ico icon.png > icon.ico
@@ -20,18 +21,26 @@ jobs:
           name: Pulse-Windows-Setup
           path: dist/PulseMessengerSetup.exe
 
+  # СБОРКА ANDROID (.APK) БЕЗ GRADLEW
   android-dist:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v3
+        with:
+          gradle-version: 8.5
+
       - name: Build APK
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleDebug
+        run: gradle assembleDebug
+
       - uses: actions/upload-artifact@v4
         with:
           name: Pulse-Android-APK
